@@ -17170,7 +17170,10 @@ Object.defineProperties(Texture.prototype, {
 
             if (!this.trim && !this.rotate && (frame.x + frame.width > this.baseTexture.width || frame.y + frame.height > this.baseTexture.height))
             {
-                throw new Error('Texture Error: frame does not fit inside the base Texture dimensions ' + this);
+                frame.width = this.baseTexture.width - frame.x;
+                frame.height = this.baseTexture.height - frame.y;
+                //TODO: Fix cause!
+                //throw new Error('Texture Error: frame does not fit inside the base Texture dimensions ' + this);
             }
 
             //this.valid = frame && frame.width && frame.height && this.baseTexture.source && this.baseTexture.hasLoaded;

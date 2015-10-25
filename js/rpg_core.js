@@ -3431,9 +3431,9 @@ Sprite.prototype._refresh = function() {
         if (this._needsTint()) {
             this._createTinter(realW, realH);
             this._executeTint(realX, realY, realW, realH);
-            this._tintTexture.dirty();
             this.texture.baseTexture = this._tintTexture;
             this.texture.frame = new Rectangle(0, 0, realW, realH);
+            this._tintTexture.update();
         } else {
             if (this._bitmap) {
                 this.texture.baseTexture = this._bitmap.baseTexture;
@@ -4746,7 +4746,7 @@ Object.defineProperty(TilingSprite.prototype, 'bitmap', {
             if (this._bitmap) {
                 this._bitmap.addLoadListener(this._onBitmapLoad.bind(this));
             } else {
-                this.texture.frame = Rectangle.emptyRectangle;
+                this.texture.frame = new Rectangle(0, 0, 0, 0);
             }
         }
     },
