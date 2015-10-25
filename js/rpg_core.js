@@ -4820,12 +4820,15 @@ TilingSprite.prototype.setFrame = function(x, y, width, height) {
  * @private
  */
 TilingSprite.prototype.updateTransform = function() {
+  /* TODO: Fix this! original:
     this.tilePosition.x = Math.round(-this.origin.x);
     this.tilePosition.y = Math.round(-this.origin.y);
     if (!this.tilingTexture) {
+
         this.originalTexture = null;
         this.generateTilingTexture(true);
     }
+  */
     PIXI.extras.TilingSprite.prototype.updateTransform.call(this);
 };
 

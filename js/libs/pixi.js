@@ -8,19 +8,19 @@
  *
  *
  * The MIT License
- * 
+ *
  * Copyright (c) 2013-2015 Mathew Groves
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -28,8 +28,8 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- * 
- * 
+ *
+ *
  */
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.PIXI = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 (function (process,global){
@@ -7656,7 +7656,7 @@ WebGLGraphicsData.prototype.destroy = function () {
 
     this.gl.deleteBuffer(this.buffer);
     this.gl.deleteBuffer(this.indexBuffer);
-    
+
     this.gl = null;
 
     this.buffer = null;
@@ -12375,9 +12375,9 @@ FilterManager.prototype.resize = function ( width, height )
 FilterManager.prototype.destroy = function ()
 {
     this.quad.destroy();
-    
+
     WebGLManager.prototype.destroy.call(this);
-    
+
     this.filterStack = null;
     this.offsetY = 0;
 
@@ -14065,7 +14065,7 @@ Quad.prototype.upload = function()
 Quad.prototype.destroy = function()
 {
     var gl = this.gl;
-    
+
      gl.deleteBuffer(this.vertexBuffer);
      gl.deleteBuffer(this.indexBuffer);
 };
@@ -16840,7 +16840,7 @@ RenderTexture.prototype.renderCanvas = function (displayObject, matrix, clear, u
         this.textureBuffer.clear();
     }
 
-   
+
 //    this.textureBuffer.
     var context = this.textureBuffer.context;
 
@@ -23380,6 +23380,7 @@ InteractionManager.prototype.mapPositionToPoint = function ( point, x, y )
  */
 InteractionManager.prototype.processInteractive = function (point, displayObject, func, hitTest, interactive )
 {
+    return; //TODO: fix this
     if(!displayObject || !displayObject.visible)
     {
         return false;
@@ -26170,13 +26171,13 @@ if (!global.cancelAnimationFrame) {
         };
         return q;
     };
-    
+
     async.priorityQueue = function (worker, concurrency) {
-        
+
         function _compareTasks(a, b){
           return a.priority - b.priority;
         };
-        
+
         function _binarySearch(sequence, item, compare) {
           var beg = -1,
               end = sequence.length - 1;
@@ -26190,7 +26191,7 @@ if (!global.cancelAnimationFrame) {
           }
           return beg;
         }
-        
+
         function _insert(q, data, priority, callback) {
           if (!q.started){
             q.started = true;
@@ -26212,7 +26213,7 @@ if (!global.cancelAnimationFrame) {
                   priority: priority,
                   callback: typeof callback === 'function' ? callback : null
               };
-              
+
               q.tasks.splice(_binarySearch(q.tasks, item, _compareTasks) + 1, 0, item);
 
               if (q.saturated && q.tasks.length === q.concurrency) {
@@ -26221,15 +26222,15 @@ if (!global.cancelAnimationFrame) {
               async.setImmediate(q.process);
           });
         }
-        
+
         // Start with a normal queue
         var q = async.queue(worker, concurrency);
-        
+
         // Override push to accept second parameter representing priority
         q.push = function (data, priority, callback) {
           _insert(q, data, priority, callback);
         };
-        
+
         // Remove unshift function
         delete q.unshift;
 
@@ -27151,7 +27152,7 @@ Loader.prototype._onLoad = function (resource) {
             this.progress = 100;
             this._onComplete();
         }
-        
+
         if (resource.error) {
             this.emit('error', resource.error, this, resource);
         }
@@ -27159,7 +27160,7 @@ Loader.prototype._onLoad = function (resource) {
             this.emit('load', this, resource);
         }
     });
-    
+
 
 
     // remove this resource from the async queue
