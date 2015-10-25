@@ -489,7 +489,6 @@ Bitmap.snap = function(stage) {
       canvasData.data.set(webGLPixels);
       context.putImageData(canvasData, 0, 0);
   } else {
-      console.log(renderTexture);
       if (SceneManager._scene) {
         Graphics.render(SceneManager._scene);
       }
@@ -4827,7 +4826,7 @@ TilingSprite.prototype.updateTransform = function() {
         this.originalTexture = null;
         this.generateTilingTexture(true);
     }
-    PIXI.TilingSprite.prototype.updateTransform.call(this);
+    PIXI.extras.TilingSprite.prototype.updateTransform.call(this);
 };
 
 /**
