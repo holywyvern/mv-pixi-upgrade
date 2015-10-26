@@ -1262,7 +1262,7 @@ Graphics.render = function(stage) {
  * @return {Boolean} True if the renderer type is WebGL
  */
 Graphics.isWebGL = function() {
-    return this._renderer && this._renderer.type === PIXI.WEBGL_RENDERER;
+    return this._renderer && this._renderer instanceof PIXI.WebGLRenderer;
 };
 
 /**
@@ -3610,7 +3610,7 @@ Sprite.prototype._renderWebGL = function(renderSession) {
         renderSession.setObjectRenderer(spriteBatch);
         if (this._filters) {
             spriteBatch.flush();
-            renderSession.filterManager.pushFilter(this._filterBlock);
+            renderSession.filterManager.pushFilter(this, this._filters);
             if (this.opaque) {
                 // Required for a bug in Firefox on Windows
                 renderSession.gl.clearColor(0, 0, 0, 1);
@@ -3620,11 +3620,9 @@ Sprite.prototype._renderWebGL = function(renderSession) {
         if (this._mask) {
             spriteBatch.stop();
             renderSession.maskManager.pushMask(this.mask, renderSession);
-            renderSession.setObjectRenderer(renderSession.maskManager);
             spriteBatch.start();
 
         }
-
         spriteBatch.render(this);
         for (var i = 0, j = this.children.length; i < j; i++) {
             this.children[i]._renderWebGL(renderSession);
@@ -3632,7 +3630,6 @@ Sprite.prototype._renderWebGL = function(renderSession) {
         if (this._mask) {
             spriteBatch.stop();
             renderSession.maskManager.popMask(this._mask, renderSession);
-            renderSession.setObjectRenderer(renderSession.maskManager);
             spriteBatch.start();
         }
         if (this._filters) {
