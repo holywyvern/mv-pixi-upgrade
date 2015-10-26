@@ -2160,7 +2160,7 @@ Spriteset_Base.prototype.createWebGLToneChanger = function() {
     var width = Graphics.width + margin * 2;
     var height = Graphics.height + margin * 2;
     this._toneFilter = new ToneFilter();
-    this._baseSprite.filters = false; //TODO: FIX tonefilter.[this._toneFilter];
+    this._baseSprite.filters = [this._toneFilter];
     this._baseSprite.filterArea = new Rectangle(-margin, -margin, width, height);
 };
 

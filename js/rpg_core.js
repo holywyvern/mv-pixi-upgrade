@@ -6309,7 +6309,6 @@ Weather.prototype._rebornSprite = function(sprite) {
  * @constructor
  */
 function ToneFilter() {
-    PIXI.AbstractFilter.call(this);
     this.initialize.apply(this, arguments);
 }
 
@@ -6318,24 +6317,28 @@ ToneFilter.prototype.constructor = ToneFilter;
 
 ToneFilter.prototype.initialize = function() {
     this.passes = [this];
-
-    this.uniforms = {
+    PIXI.AbstractFilter.call(this,
+      // vertex shaders
+      null,
+      // fragment shader
+      [
+          'precision mediump float;',
+          'varying vec2 vTextureCoord;',
+          'varying vec4 vColor;',
+          'uniform mat4 matrix;',
+          'uniform sampler2D uSampler;',
+          'void main(void) {',
+          '   gl_FragColor = texture2D(uSampler, vTextureCoord) * matrix;',
+          '}'
+      ].join('\n'),
+      // uniforms
+      {
         matrix: {
-            type: 'mat4',
-            value: [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]
+          type: 'mat4',
+          value: [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]
         }
-    };
-
-    this.fragmentSrc = [
-        'precision mediump float;',
-        'varying vec2 vTextureCoord;',
-        'varying vec4 vColor;',
-        'uniform mat4 matrix;',
-        'uniform sampler2D uSampler;',
-        'void main(void) {',
-        '   gl_FragColor = texture2D(uSampler, vTextureCoord) * matrix;',
-        '}'
-    ];
+      }
+    );
 };
 
 /**
