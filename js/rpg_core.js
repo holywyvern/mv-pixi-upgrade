@@ -3220,6 +3220,15 @@ Sprite.prototype.initialize = function(bitmap) {
 // Number of the created objects.
 Sprite._counter = 0;
 
+Object.defineProperty(Sprite.prototype, '_frame', {
+  get: function () {
+    return this.texture.frame;
+  },
+  set: function (value) {
+    this.texture.frame = value;
+  }
+});
+
 /**
  * The image for the sprite.
  *
@@ -3332,10 +3341,7 @@ Sprite.prototype.setFrame = function(x, y, width, height) {
     var frame = this._frame;
     if (x !== frame.x || y !== frame.y ||
             width !== frame.width || height !== frame.height) {
-        frame.x = x;
-        frame.y = y;
-        frame.width = width;
-        frame.height = height;
+        frame.set(x, y, width, height);
         this._refresh();
     }
 };
@@ -4820,7 +4826,6 @@ TilingSprite.prototype.setFrame = function(x, y, width, height) {
  * @private
  */
 TilingSprite.prototype.updateTransform = function() {
-  /* TODO: Fix this! original:
     this.tilePosition.x = Math.round(-this.origin.x);
     this.tilePosition.y = Math.round(-this.origin.y);
     if (!this.tilingTexture) {
@@ -4828,9 +4833,106 @@ TilingSprite.prototype.updateTransform = function() {
         this.originalTexture = null;
         this.generateTilingTexture(true);
     }
-  */
     PIXI.extras.TilingSprite.prototype.updateTransform.call(this);
 };
+
+// TODO: this doesn't work...
+TilingSprite.prototype.generateTilingTexture = function (forcePowerOfTwo) {
+  if (!this.texture.baseTexture.hasLoaded) return;
+
+  var texture = this.originalTexture || this.texture;
+  var frame = texture.frame;
+  var targetWidth, targetHeight;
+
+  //  Check that the frame is the same size as the base texture.
+  var isFrame = frame.width !== texture.baseTexture.width || frame.height !== texture.baseTexture.height;
+
+  var newTextureRequired = false;
+
+  if (!forcePowerOfTwo)
+  {
+      if (isFrame)
+      {
+          if (texture.trim)
+          {
+              targetWidth = texture.trim.width;
+              targetHeight = texture.trim.height;
+          }
+          else
+          {
+              targetWidth = frame.width;
+              targetHeight = frame.height;
+          }
+
+          newTextureRequired = true;
+      }
+  }
+  else
+  {
+      targetWidth = PIXI.utils.getNextPowerOfTwo(frame.width);
+      targetHeight = PIXI.utils.getNextPowerOfTwo(frame.height);
+
+      //  If the BaseTexture dimensions don't match the texture frame then we need a new texture anyway because it's part of a texture atlas
+      if (frame.width !== targetWidth || frame.height !== targetHeight || texture.baseTexture.width !== targetWidth || texture.baseTexture.height || targetHeight) newTextureRequired = true;
+  }
+
+  if (newTextureRequired)
+  {
+      var canvasBuffer;
+
+      if (this.tilingTexture && this.tilingTexture.isTiling)
+      {
+          canvasBuffer = this.tilingTexture.canvasBuffer;
+          canvasBuffer.resize(targetWidth, targetHeight);
+          this.tilingTexture.baseTexture.width = targetWidth;
+          this.tilingTexture.baseTexture.height = targetHeight;
+          this.tilingTexture.needsUpdate = true;
+      }
+      else
+      {
+          canvasBuffer = new PIXI.CanvasBuffer(targetWidth, targetHeight);
+
+          this.tilingTexture = PIXI.Texture.fromCanvas(canvasBuffer.canvas);
+          this.tilingTexture.canvasBuffer = canvasBuffer;
+          this.tilingTexture.isTiling = true;
+      }
+
+      canvasBuffer.context.drawImage(texture.baseTexture.source,
+                             texture.crop.x,
+                             texture.crop.y,
+                             texture.crop.width,
+                             texture.crop.height,
+                             0,
+                             0,
+                             targetWidth,
+                             targetHeight);
+      console.log(this);
+      this.texture = this.tilingTexture;
+      this.scale.x = frame.width / targetWidth;
+      this.scale.y = frame.height / targetHeight;
+  }
+  else
+  {
+      //  TODO - switching?
+      if (this.tilingTexture && this.tilingTexture.isTiling)
+      {
+          // destroy the tiling texture!
+          // TODO could store this somewhere?
+          this.tilingTexture.destroy(true);
+      }
+
+      this.tileScaleOffset.x = 1;
+      this.tileScaleOffset.y = 1;
+      this.tilingTexture = texture;
+  }
+
+  this.refreshTexture = false;
+
+  this.originalTexture = this.texture;
+  this.texture = this.tilingTexture;
+
+  this.tilingTexture.baseTexture._powerOf2 = true;
+}
 
 /**
  * @method _onBitmapLoad
