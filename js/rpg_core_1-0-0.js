@@ -13,16 +13,6 @@ function JsExtensions() {
     throw new Error('This is not a class');
 }
 
-/** NEW METHOD.
- * Sets all the fields of the rect at once.
- */
-PIXI.Rectangle.prototype.set = function (x, y, width, height) {
-  this.x = x;
-  this.y = y;
-  this.width = width;
-  this.height = height;
-}
-
 /**
  * Returns a number whose value is limited to the given range.
  *
@@ -328,6 +318,16 @@ Rectangle.prototype.constructor = Rectangle;
 Rectangle.prototype.initialize = function(x, y, width, height) {
     PIXI.Rectangle.call(this, x, y, width, height);
 };
+
+/* ***NEW METHOD***
+ * Sets all the fields of the rect at once.
+ */
+PIXI.Rectangle.prototype.set = function (x, y, width, height) {
+  this.x = x;
+  this.y = y;
+  this.width = width;
+  this.height = height;
+}
 
 /**
  * @static
@@ -3220,9 +3220,6 @@ Sprite.prototype.initialize = function(bitmap) {
 // Number of the created objects.
 Sprite._counter = 0;
 
-/**
- * PIXI sprites doesn't have a frame on its own.
- */
 Object.defineProperty(Sprite.prototype, '_frame', {
   get: function () {
     return this.texture.frame;
@@ -3440,9 +3437,9 @@ Sprite.prototype._refresh = function() {
         if (this._needsTint()) {
             this._createTinter(realW, realH);
             this._executeTint(realX, realY, realW, realH);
-            this._tintTexture.update();
             this.texture.baseTexture = this._tintTexture;
             this.texture.frame = new Rectangle(0, 0, realW, realH);
+            this._tintTexture.update();
         } else {
             if (this._bitmap) {
                 this.texture.baseTexture = this._bitmap.baseTexture;
@@ -3450,7 +3447,7 @@ Sprite.prototype._refresh = function() {
             this.texture.frame = this._realFrame;
         }
     } else if (this._bitmap) {
-        this.texture.frame = Rectangle.emptyRectangle;
+        this.texture.frame = new Rectangle(0, 0, 0, 0);
     } else {
         this.texture.trim = this._frame;
         this.texture.frame = this._frame;
@@ -3575,6 +3572,8 @@ Sprite.prototype.updateTransform = function() {
     PIXI.Sprite.prototype.updateTransform.call(this);
     this.worldTransform.tx += this._offset.x;
     this.worldTransform.ty += this._offset.y;
+    this.worldTransform.tx = Math.floor(this.worldTransform.tx);
+    this.worldTransform.ty = Math.floor(this.worldTransform.ty);
 };
 
 /**
@@ -3622,6 +3621,7 @@ Sprite.prototype._renderWebGL = function(renderSession) {
             spriteBatch.stop();
             renderSession.maskManager.pushMask(this.mask, renderSession);
             spriteBatch.start();
+
         }
         spriteBatch.render(this);
         for (var i = 0, j = this.children.length; i < j; i++) {
@@ -3935,6 +3935,7 @@ Tilemap.prototype.isReady = function() {
  */
 Tilemap.prototype.update = function() {
     this.animationCount++;
+    this.animationFrame = Math.floor(this.animationCount / 30);
     this.children.forEach(function(child) {
         if (child.update) {
             child.update();
@@ -3948,6 +3949,7 @@ Tilemap.prototype.update = function() {
  * @method refresh
  */
 Tilemap.prototype.refresh = function() {
+    this._needsRepaint = true;
     this._lastTiles.length = 0;
 };
 
@@ -3961,7 +3963,15 @@ Tilemap.prototype.updateTransform = function() {
     var startX = Math.floor((ox - this._margin) / this._tileWidth);
     var startY = Math.floor((oy - this._margin) / this._tileHeight);
     this._updateLayerPositions(startX, startY);
-    this._paintAllTiles(startX, startY);
+    if (this._needsRepaint || this._lastAnimationFrame !== this.animationFrame ||
+            this._lastStartX !== startX || this._lastStartY !== startY) {
+        this._frameUpdated = this._lastAnimationFrame !== this.animationFrame;
+        this._lastAnimationFrame = this.animationFrame;
+        this._lastStartX = startX;
+        this._lastStartY = startY;
+        this._paintAllTiles(startX, startY);
+        this._needsRepaint = false;
+    }
     this._sortChildren();
     PIXI.Container.prototype.updateTransform.call(this);
 };
@@ -4125,13 +4135,9 @@ Tilemap.prototype._paintTiles = function(startX, startY, x, y) {
         }
     }
 
-    var count = 1000 + this.animationCount - my;
-    var frameUpdated = (count % 30 === 0);
-    this._animationFrame = Math.floor(count / 30);
-
     var lastLowerTiles = this._readLastTiles(0, lx, ly);
     if (!lowerTiles.equals(lastLowerTiles) ||
-            (Tilemap.isTileA1(tileId0) && frameUpdated)) {
+            (Tilemap.isTileA1(tileId0) && this._frameUpdated)) {
         this._lowerBitmap.clearRect(dx, dy, this._tileWidth, this._tileHeight);
         for (var i = 0; i < lowerTiles.length; i++) {
             var lowerTileId = lowerTiles[i];
@@ -4263,7 +4269,7 @@ Tilemap.prototype._drawAutotile = function(bitmap, tileId, dx, dy) {
     var isTable = false;
 
     if (Tilemap.isTileA1(tileId)) {
-        var waterSurfaceIndex = [0, 1, 2, 1][this._animationFrame % 4];
+        var waterSurfaceIndex = [0, 1, 2, 1][this.animationFrame % 4];
         setNumber = 0;
         if (kind === 0) {
             bx = waterSurfaceIndex * 2;
@@ -4286,7 +4292,7 @@ Tilemap.prototype._drawAutotile = function(bitmap, tileId, dx, dy) {
             else {
                 bx += 6;
                 autotileTable = Tilemap.WATERFALL_AUTOTILE_TABLE;
-                by += this._animationFrame % 3;
+                by += this.animationFrame % 3;
             }
         }
     } else if (Tilemap.isTileA2(tileId)) {
@@ -4743,7 +4749,7 @@ Object.defineProperty(TilingSprite.prototype, 'bitmap', {
             if (this._bitmap) {
                 this._bitmap.addLoadListener(this._onBitmapLoad.bind(this));
             } else {
-                this.texture.frame = Rectangle.emptyRectangle;
+                this.texture.frame = new Rectangle(0, 0, 0, 0);
             }
         }
     },
@@ -4820,6 +4826,7 @@ TilingSprite.prototype.updateTransform = function() {
     this.tilePosition.x = Math.round(-this.origin.x);
     this.tilePosition.y = Math.round(-this.origin.y);
     if (!this.tilingTexture) {
+
         this.originalTexture = null;
         this.generateTilingTexture(true);
     }
@@ -4945,7 +4952,7 @@ TilingSprite.prototype._refresh = function() {
     }
     var lastTrim = this.texture.trim;
     this.texture.trim = frame;
-    this.texture.frame = frame;
+    this.texture.frame = Rectangle.emptyRectangle;
     this.texture.trim = lastTrim;
     this.tilingTexture = null;
 };
@@ -5926,7 +5933,7 @@ WindowLayer.prototype._canvasClearWindowRect = function(renderSession, window) {
  */
 WindowLayer.prototype._renderWebGL = function(renderSession) {
     if (!this.visible) {
-       return;
+        return;
     }
 
     var gl = renderSession.gl;
