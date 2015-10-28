@@ -17172,7 +17172,7 @@ Object.defineProperties(Texture.prototype, {
             {
                 frame.width = this.baseTexture.width - frame.x;
                 frame.height = this.baseTexture.height - frame.y;
-                //TODO: Fix cause!
+                //TODO: Fix cause! Look at: rpg_core@3439 for details
                 //throw new Error('Texture Error: frame does not fit inside the base Texture dimensions ' + this);
             }
 
