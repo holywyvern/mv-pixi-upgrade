@@ -13,16 +13,6 @@ function JsExtensions() {
     throw new Error('This is not a class');
 }
 
-/** NEW METHOD.
- * Sets all the fields of the rect at once.
- */
-PIXI.Rectangle.prototype.set = function (x, y, width, height) {
-  this.x = x;
-  this.y = y;
-  this.width = width;
-  this.height = height;
-}
-
 /**
  * Returns a number whose value is limited to the given range.
  *
@@ -291,8 +281,6 @@ Point.prototype.initialize = function(x, y) {
     PIXI.Point.call(this, x, y);
 };
 
-Point.emptyPoint = new Point(0, 0);
-
 /**
  * The x coordinate.
  *
@@ -384,7 +372,7 @@ Bitmap.prototype.initialize = function(width, height) {
     this._canvas.width = Math.max(width || 0, 1);
     this._canvas.height = Math.max(height || 0, 1);
     this._baseTexture = new PIXI.BaseTexture(this._canvas);
-    this._baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
+    this._baseTexture.scaleMode = PIXI.scaleModes.NEAREST;
     this._image = null;
     this._url = '';
     this._paintOpacity = 255;
@@ -470,32 +458,29 @@ Bitmap.load = function(url) {
  * @return Bitmap
  */
 Bitmap.snap = function(stage) {
-  var width = Graphics.width;
-  var height = Graphics.height;
-  var bitmap = new Bitmap(width, height);
-  var context = bitmap._context;
-  var renderTexture = new PIXI.RenderTexture(Graphics._renderer, width, height);
-  if (stage) {
-      renderTexture.render(stage);
-      stage.worldTransform.identity();
-  }
-  if (Graphics.isWebGL()) {
-      var gl =  renderTexture.renderer.gl;
-      var webGLPixels = new Uint8Array(4 * width * height);
-      gl.bindFramebuffer(gl.FRAMEBUFFER, renderTexture.textureBuffer.frameBuffer);
-      gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, webGLPixels);
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      var canvasData = context.getImageData(0, 0, width, height);
-      canvasData.data.set(webGLPixels);
-      context.putImageData(canvasData, 0, 0);
-  } else {
-      if (SceneManager._scene) {
-        Graphics.render(SceneManager._scene);
-      }
-      context.drawImage(Graphics._renderer.view, 0, 0);
-  }
-  bitmap._setDirty();
-  return bitmap;
+    var width = Graphics.width;
+    var height = Graphics.height;
+    var bitmap = new Bitmap(width, height);
+    var context = bitmap._context;
+    var renderTexture = new PIXI.RenderTexture(width, height);
+    if (stage) {
+        renderTexture.render(stage);
+        stage.worldTransform.identity();
+    }
+    if (Graphics.isWebGL()) {
+        var gl =  renderTexture.renderer.gl;
+        var webGLPixels = new Uint8Array(4 * width * height);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, renderTexture.textureBuffer.frameBuffer);
+        gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, webGLPixels);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        var canvasData = context.getImageData(0, 0, width, height);
+        canvasData.data.set(webGLPixels);
+        context.putImageData(canvasData, 0, 0);
+    } else {
+        context.drawImage(renderTexture.textureBuffer.canvas, 0, 0);
+    }
+    bitmap._setDirty();
+    return bitmap;
 };
 
 /**
@@ -623,9 +608,9 @@ Object.defineProperty(Bitmap.prototype, 'smooth', {
         if (this._smooth !== value) {
             this._smooth = value;
             if (this._smooth) {
-                this._baseTexture.scaleMode = PIXI.SCALE_MODES.LINEAR;
+                this._baseTexture.scaleMode = PIXI.scaleModes.LINEAR;
             } else {
-                this._baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
+                this._baseTexture.scaleMode = PIXI.scaleModes.NEAREST;
             }
         }
     },
@@ -1096,7 +1081,7 @@ Bitmap.prototype._onError = function() {
  * @private
  */
 Bitmap.prototype._setDirty = function() {
-    this._baseTexture.update();
+    this._baseTexture.dirty();
 };
 
 //-----------------------------------------------------------------------------
@@ -1262,7 +1247,7 @@ Graphics.render = function(stage) {
  * @return {Boolean} True if the renderer type is WebGL
  */
 Graphics.isWebGL = function() {
-    return this._renderer && this._renderer instanceof PIXI.WebGLRenderer;
+    return this._renderer && this._renderer.type === PIXI.WEBGL_RENDERER;
 };
 
 /**
@@ -3221,18 +3206,6 @@ Sprite.prototype.initialize = function(bitmap) {
 Sprite._counter = 0;
 
 /**
- * PIXI sprites doesn't have a frame on its own.
- */
-Object.defineProperty(Sprite.prototype, '_frame', {
-  get: function () {
-    return this.texture.frame;
-  },
-  set: function (value) {
-    this.texture.frame = value;
-  }
-});
-
-/**
  * The image for the sprite.
  *
  * @property bitmap
@@ -3249,7 +3222,7 @@ Object.defineProperty(Sprite.prototype, 'bitmap', {
                 this.setFrame(0, 0, 0, 0);
                 this._bitmap.addLoadListener(this._onBitmapLoad.bind(this));
             } else {
-                this.texture.frame = Rectangle.emptyRectangle;
+                this.texture.setFrame(Rectangle.emptyRectangle);
             }
         }
     },
@@ -3344,7 +3317,10 @@ Sprite.prototype.setFrame = function(x, y, width, height) {
     var frame = this._frame;
     if (x !== frame.x || y !== frame.y ||
             width !== frame.width || height !== frame.height) {
-        frame.set(x, y, width, height);
+        frame.x = x;
+        frame.y = y;
+        frame.width = width;
+        frame.height = height;
         this._refresh();
     }
 };
@@ -3440,20 +3416,20 @@ Sprite.prototype._refresh = function() {
         if (this._needsTint()) {
             this._createTinter(realW, realH);
             this._executeTint(realX, realY, realW, realH);
-            this._tintTexture.update();
+            this._tintTexture.dirty();
             this.texture.baseTexture = this._tintTexture;
-            this.texture.frame = new Rectangle(0, 0, realW, realH);
+            this.texture.setFrame(new Rectangle(0, 0, realW, realH));
         } else {
             if (this._bitmap) {
                 this.texture.baseTexture = this._bitmap.baseTexture;
             }
-            this.texture.frame = this._realFrame;
+            this.texture.setFrame(this._realFrame);
         }
     } else if (this._bitmap) {
-        this.texture.frame = Rectangle.emptyRectangle;
+        this.texture.setFrame(Rectangle.emptyRectangle);
     } else {
         this.texture.trim = this._frame;
-        this.texture.frame = this._frame;
+        this.texture.setFrame(this._frame);
         this.texture.trim = null;
     }
 };
@@ -3607,11 +3583,10 @@ Sprite.prototype._renderCanvas = function(renderSession) {
  */
 Sprite.prototype._renderWebGL = function(renderSession) {
     if (this.visible && this.alpha > 0) {
-        var spriteBatch =  renderSession.plugins.sprite;
-        renderSession.setObjectRenderer(spriteBatch);
+        var spriteBatch =  renderSession.spriteBatch;
         if (this._filters) {
             spriteBatch.flush();
-            renderSession.filterManager.pushFilter(this, this._filters);
+            renderSession.filterManager.pushFilter(this._filterBlock);
             if (this.opaque) {
                 // Required for a bug in Firefox on Windows
                 renderSession.gl.clearColor(0, 0, 0, 1);
@@ -3756,11 +3731,11 @@ function Tilemap() {
     this.initialize.apply(this, arguments);
 }
 
-Tilemap.prototype = Object.create(PIXI.Container.prototype);
+Tilemap.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 Tilemap.prototype.constructor = Tilemap;
 
 Tilemap.prototype.initialize = function() {
-    PIXI.Container.call(this);
+    PIXI.DisplayObjectContainer.call(this);
 
     this._margin = 20;
     this._width = Graphics.width + this._margin * 2;
@@ -3963,7 +3938,7 @@ Tilemap.prototype.updateTransform = function() {
     this._updateLayerPositions(startX, startY);
     this._paintAllTiles(startX, startY);
     this._sortChildren();
-    PIXI.Container.prototype.updateTransform.call(this);
+    PIXI.DisplayObjectContainer.prototype.updateTransform.call(this);
 };
 
 /**
@@ -4703,13 +4678,13 @@ function TilingSprite() {
     this.initialize.apply(this, arguments);
 }
 
-TilingSprite.prototype = Object.create(PIXI.extras.TilingSprite.prototype);
+TilingSprite.prototype = Object.create(PIXI.TilingSprite.prototype);
 TilingSprite.prototype.constructor = TilingSprite;
 
 TilingSprite.prototype.initialize = function(bitmap) {
     var texture = new PIXI.Texture(new PIXI.BaseTexture());
 
-    PIXI.extras.TilingSprite.call(this, texture);
+    PIXI.TilingSprite.call(this, texture);
 
     this._bitmap = null;
     this._width = 0;
@@ -4743,7 +4718,7 @@ Object.defineProperty(TilingSprite.prototype, 'bitmap', {
             if (this._bitmap) {
                 this._bitmap.addLoadListener(this._onBitmapLoad.bind(this));
             } else {
-                this.texture.frame = Rectangle.emptyRectangle;
+                this.texture.setFrame(Rectangle.emptyRectangle);
             }
         }
     },
@@ -4823,106 +4798,8 @@ TilingSprite.prototype.updateTransform = function() {
         this.originalTexture = null;
         this.generateTilingTexture(true);
     }
-    PIXI.extras.TilingSprite.prototype.updateTransform.call(this);
+    PIXI.TilingSprite.prototype.updateTransform.call(this);
 };
-
-// TODO: this doesn't work...
-TilingSprite.prototype.generateTilingTexture = function (forcePowerOfTwo) {
-  if (!this.texture.baseTexture.hasLoaded) return;
-
-  var texture = this.originalTexture || this.texture;
-  var frame = texture.frame;
-  var targetWidth, targetHeight;
-
-  //  Check that the frame is the same size as the base texture.
-  var isFrame = frame.width !== texture.baseTexture.width || frame.height !== texture.baseTexture.height;
-
-  var newTextureRequired = false;
-
-  if (!forcePowerOfTwo)
-  {
-      if (isFrame)
-      {
-          if (texture.trim)
-          {
-              targetWidth = texture.trim.width;
-              targetHeight = texture.trim.height;
-          }
-          else
-          {
-              targetWidth = frame.width;
-              targetHeight = frame.height;
-          }
-
-          newTextureRequired = true;
-      }
-  }
-  else
-  {
-      targetWidth = PIXI.utils.getNextPowerOfTwo(frame.width);
-      targetHeight = PIXI.utils.getNextPowerOfTwo(frame.height);
-
-      //  If the BaseTexture dimensions don't match the texture frame then we need a new texture anyway because it's part of a texture atlas
-      if (frame.width !== targetWidth || frame.height !== targetHeight || texture.baseTexture.width !== targetWidth || texture.baseTexture.height || targetHeight) newTextureRequired = true;
-  }
-
-  if (newTextureRequired)
-  {
-      var canvasBuffer;
-
-      if (this.tilingTexture && this.tilingTexture.isTiling)
-      {
-          canvasBuffer = this.tilingTexture.canvasBuffer;
-          canvasBuffer.resize(targetWidth, targetHeight);
-          this.tilingTexture.baseTexture.width = targetWidth;
-          this.tilingTexture.baseTexture.height = targetHeight;
-          this.tilingTexture.needsUpdate = true;
-      }
-      else
-      {
-          canvasBuffer = new PIXI.CanvasBuffer(targetWidth, targetHeight);
-
-          this.tilingTexture = PIXI.Texture.fromCanvas(canvasBuffer.canvas);
-          this.tilingTexture.canvasBuffer = canvasBuffer;
-          this.tilingTexture.isTiling = true;
-      }
-
-      canvasBuffer.context.drawImage(texture.baseTexture.source,
-                             texture.crop.x,
-                             texture.crop.y,
-                             texture.crop.width,
-                             texture.crop.height,
-                             0,
-                             0,
-                             targetWidth,
-                             targetHeight);
-      console.log(this);
-      this.texture = this.tilingTexture;
-      this.scale.x = frame.width / targetWidth;
-      this.scale.y = frame.height / targetHeight;
-  }
-  else
-  {
-      //  TODO - switching?
-      if (this.tilingTexture && this.tilingTexture.isTiling)
-      {
-          // destroy the tiling texture!
-          // TODO could store this somewhere?
-          this.tilingTexture.destroy(true);
-      }
-
-      this.tileScaleOffset.x = 1;
-      this.tileScaleOffset.y = 1;
-      this.tilingTexture = texture;
-  }
-
-  this.refreshTexture = false;
-
-  this.originalTexture = this.texture;
-  this.texture = this.tilingTexture;
-
-  this.tilingTexture.baseTexture._powerOf2 = true;
-}
 
 /**
  * @method _onBitmapLoad
@@ -4945,7 +4822,7 @@ TilingSprite.prototype._refresh = function() {
     }
     var lastTrim = this.texture.trim;
     this.texture.trim = frame;
-    this.texture.frame = frame;
+    this.texture.setFrame(frame);
     this.texture.trim = lastTrim;
     this.tilingTexture = null;
 };
@@ -4994,7 +4871,7 @@ ScreenSprite.prototype.initialize = function() {
 
     this._bitmap = new Bitmap(1, 1);
     this.texture.baseTexture = this._bitmap.baseTexture;
-    this.texture.frame = new Rectangle(0, 0, 1, 1);
+    this.texture.setFrame(new Rectangle(0, 0, 1, 1));
     this.scale.x = Graphics.width;
     this.scale.y = Graphics.height;
     this.opacity = 0;
@@ -5090,11 +4967,11 @@ function Window() {
     this.initialize.apply(this, arguments);
 }
 
-Window.prototype = Object.create(PIXI.Container.prototype);
+Window.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 Window.prototype.constructor = Window;
 
 Window.prototype.initialize = function() {
-    PIXI.Container.call(this);
+    PIXI.DisplayObjectContainer.call(this);
 
     this._isWindow = true;
     this._windowskin = null;
@@ -5444,7 +5321,7 @@ Window.prototype.updateTransform = function() {
     this._updateArrows();
     this._updatePauseSign();
     this._updateContents();
-    PIXI.Container.prototype.updateTransform.call(this);
+    PIXI.DisplayObjectContainer.prototype.updateTransform.call(this);
 };
 
 /**
@@ -5452,7 +5329,7 @@ Window.prototype.updateTransform = function() {
  * @private
  */
 Window.prototype._createAllParts = function() {
-    this._windowSpriteContainer = new PIXI.Container();
+    this._windowSpriteContainer = new PIXI.DisplayObjectContainer();
     this._windowBackSprite = new Sprite();
     this._windowCursorSprite = new Sprite();
     this._windowFrameSprite = new Sprite();
@@ -5777,11 +5654,11 @@ function WindowLayer() {
     this.initialize.apply(this, arguments);
 }
 
-WindowLayer.prototype = Object.create(PIXI.Container.prototype);
+WindowLayer.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 WindowLayer.prototype.constructor = WindowLayer;
 
 WindowLayer.prototype.initialize = function() {
-    PIXI.Container.call(this);
+    PIXI.DisplayObjectContainer.call(this);
     this._width = 0;
     this._height = 0;
     this._tempCanvas = null;
@@ -5926,11 +5803,10 @@ WindowLayer.prototype._canvasClearWindowRect = function(renderSession, window) {
  */
 WindowLayer.prototype._renderWebGL = function(renderSession) {
     if (!this.visible) {
-       return;
+        return;
     }
 
     var gl = renderSession.gl;
-    var spriteBatch = renderSession.plugins.sprite;
 
     if (!this._vertexBuffer) {
         this._vertexBuffer = gl.createBuffer();
@@ -5938,20 +5814,20 @@ WindowLayer.prototype._renderWebGL = function(renderSession) {
 
     this._dummySprite._renderWebGL(renderSession);
 
-    spriteBatch.stop();
+    renderSession.spriteBatch.stop();
     gl.enable(gl.STENCIL_TEST);
     gl.clear(gl.STENCIL_BUFFER_BIT);
     this._webglMaskOutside(renderSession);
-    spriteBatch.start();
+    renderSession.spriteBatch.start();
 
     for (var i = this.children.length - 1; i >= 0; i--) {
         var child = this.children[i];
         if (child._isWindow && child.visible && child.openness > 0) {
             gl.stencilFunc(gl.EQUAL, 0, 0xFF);
             child._renderWebGL(renderSession);
-            spriteBatch.stop();
+            renderSession.spriteBatch.stop();
             this._webglMaskWindow(renderSession, child);
-            spriteBatch.start();
+            renderSession.spriteBatch.start();
         }
     }
 
@@ -6006,8 +5882,9 @@ WindowLayer.prototype._webglMaskWindow = function(renderSession, window) {
 WindowLayer.prototype._webglMaskRect = function(renderSession, x, y, w, h) {
     if (w > 0 && h > 0) {
         var gl = renderSession.gl;
-        var projection = renderSession.renderTarget.projectionMatrix;
-        var offset = Point.emptyPoint; //TODO: FIX THIS! OLD: renderSession.offset;
+
+        var projection = renderSession.projection;
+        var offset = renderSession.offset;
         var shader = renderSession.shaderManager.primitiveShader;
 
         renderSession.shaderManager.setShader(shader);
@@ -6105,11 +5982,11 @@ function Weather() {
     this.initialize.apply(this, arguments);
 }
 
-Weather.prototype = Object.create(PIXI.Container.prototype);
+Weather.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
 Weather.prototype.constructor = Weather;
 
 Weather.prototype.initialize = function() {
-    PIXI.Container.call(this);
+    PIXI.DisplayObjectContainer.call(this);
 
     this._width = Graphics.width;
     this._height = Graphics.height;
@@ -6302,6 +6179,7 @@ Weather.prototype._rebornSprite = function(sprite) {
  * @constructor
  */
 function ToneFilter() {
+    PIXI.AbstractFilter.call(this);
     this.initialize.apply(this, arguments);
 }
 
@@ -6310,28 +6188,24 @@ ToneFilter.prototype.constructor = ToneFilter;
 
 ToneFilter.prototype.initialize = function() {
     this.passes = [this];
-    PIXI.AbstractFilter.call(this,
-      // vertex shaders
-      null,
-      // fragment shader
-      [
-          'precision mediump float;',
-          'varying vec2 vTextureCoord;',
-          'varying vec4 vColor;',
-          'uniform mat4 matrix;',
-          'uniform sampler2D uSampler;',
-          'void main(void) {',
-          '   gl_FragColor = texture2D(uSampler, vTextureCoord) * matrix;',
-          '}'
-      ].join('\n'),
-      // uniforms
-      {
+
+    this.uniforms = {
         matrix: {
-          type: 'mat4',
-          value: [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]
+            type: 'mat4',
+            value: [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]
         }
-      }
-    );
+    };
+
+    this.fragmentSrc = [
+        'precision mediump float;',
+        'varying vec2 vTextureCoord;',
+        'varying vec4 vColor;',
+        'uniform mat4 matrix;',
+        'uniform sampler2D uSampler;',
+        'void main(void) {',
+        '   gl_FragColor = texture2D(uSampler, vTextureCoord) * matrix;',
+        '}'
+    ];
 };
 
 /**
@@ -6564,11 +6438,11 @@ function Stage() {
     this.initialize.apply(this, arguments);
 }
 
-Stage.prototype = Object.create(PIXI.Container.prototype);
+Stage.prototype = Object.create(PIXI.Stage.prototype);
 Stage.prototype.constructor = Stage;
 
 Stage.prototype.initialize = function() {
-    PIXI.Container.call(this);
+    PIXI.Stage.call(this);
 
     // The interactive flag causes a memory leak.
     this.interactive = false;
