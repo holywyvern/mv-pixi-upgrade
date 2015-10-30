@@ -4830,6 +4830,7 @@ TilingSprite.prototype.generateTilingTexture = function (fpo2) {
  */
 TilingSprite.prototype._onBitmapLoad = function() {
     this.texture.baseTexture = this._bitmap.baseTexture;
+    this.texture.frame = new Rectangle(0, 0, this._bitmap.width, this.bitmap.height);
     this._refresh();
 };
 
@@ -4848,6 +4849,10 @@ TilingSprite.prototype._refresh = function() {
     this.texture.frame = (frame);
     this.texture.trim = lastTrim;
     this.tilingTexture = null;
+    this.tilingTexture = this.texture;
+    //this._width = frame.width;
+    //this._height = frame.height;
+    this.texture.update();
 };
 
 // The important members from Pixi.js
