@@ -143,6 +143,20 @@ Math.randomInt = function(max) {
     return Math.floor(max * Math.random());
 };
 
+//==============================================================================
+// PIXI.Container.prototype
+//==============================================================================
+
+Object.defineProperty(PIXI.Container.prototype, '_frame', {
+  get: function () {
+    return this.texture.frame;
+  },
+  set: function (value) {
+    this.texture.frame = value;
+  },
+  configurable: true
+});
+
 //-----------------------------------------------------------------------------
 /**
  * The static class that defines utility methods.
@@ -469,7 +483,6 @@ Bitmap.snap = function(stage) {
     }
 
     if (Graphics.isWebGL()) {
-        console.log(renderTexture);
         var gl =  renderTexture.renderer.gl;
         var webGLPixels = new Uint8Array(4 * width * height);
         gl.bindFramebuffer(gl.FRAMEBUFFER, renderTexture.textureBuffer.frameBuffer);
@@ -6197,24 +6210,28 @@ ToneFilter.prototype.constructor = ToneFilter;
 
 ToneFilter.prototype.initialize = function() {
     this.passes = [this];
-
-    this.uniforms = {
-        matrix: {
-            type: 'mat4',
-            value: [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]
-        }
-    };
-
-    this.fragmentSrc = [
-        'precision mediump float;',
-        'varying vec2 vTextureCoord;',
-        'varying vec4 vColor;',
-        'uniform mat4 matrix;',
-        'uniform sampler2D uSampler;',
-        'void main(void) {',
-        '   gl_FragColor = texture2D(uSampler, vTextureCoord) * matrix;',
-        '}'
-    ];
+    PIXI.AbstractFilter.call(this,
+      // vertex shader
+      null,
+      // fragment shader
+      [
+          'precision mediump float;',
+          'varying vec2 vTextureCoord;',
+          'varying vec4 vColor;',
+          'uniform mat4 matrix;',
+          'uniform sampler2D uSampler;',
+          'void main(void) {',
+          '   gl_FragColor = texture2D(uSampler, vTextureCoord) * matrix;',
+          '}'
+      ].join("\n"),
+      // uniforms
+      {
+          matrix: {
+              type: 'mat4',
+              value: [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]
+          }
+      }
+    );
 };
 
 /**
