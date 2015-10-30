@@ -462,12 +462,14 @@ Bitmap.snap = function(stage) {
     var height = Graphics.height;
     var bitmap = new Bitmap(width, height);
     var context = bitmap._context;
-    var renderTexture = new PIXI.RenderTexture(new PIXI.CanvasRenderer(width, height), width, height);
+    var renderTexture = new PIXI.RenderTexture(new PIXI.autoDetectRenderer(width, height), width, height);
     if (stage) {
         renderTexture.render(stage, null, true);
         stage.worldTransform.identity();
     }
+
     if (Graphics.isWebGL()) {
+        console.log(renderTexture);
         var gl =  renderTexture.renderer.gl;
         var webGLPixels = new Uint8Array(4 * width * height);
         gl.bindFramebuffer(gl.FRAMEBUFFER, renderTexture.textureBuffer.frameBuffer);
@@ -479,6 +481,7 @@ Bitmap.snap = function(stage) {
     } else {
         context.drawImage(renderTexture.textureBuffer.canvas, 0, 0);
     }
+
     bitmap._setDirty();
     return bitmap;
 };
@@ -1247,7 +1250,7 @@ Graphics.render = function(stage) {
  * @return {Boolean} True if the renderer type is WebGL
  */
 Graphics.isWebGL = function() {
-    return this._renderer && this._renderer.type === PIXI.WEBGL_RENDERER;
+    return this._renderer && this._renderer instanceof PIXI.WebGLRenderer;
 };
 
 /**
