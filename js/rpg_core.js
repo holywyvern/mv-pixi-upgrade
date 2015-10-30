@@ -3597,13 +3597,14 @@ Sprite.prototype._renderCanvas = function(renderSession) {
  * @param {Object} renderSession
  * @private
  */
- /*
+/*
 Sprite.prototype._renderWebGL = function(renderSession) {
     if (this.visible && this.alpha > 0) {
         var spriteBatch =  renderSession.plugins.sprite;
+        renderSession.setObjectRenderer(spriteBatch);
         if (this._filters) {
             spriteBatch.flush();
-            renderSession.filterManager.pushFilter(this._filters);
+            renderSession.filterManager.pushFilter(this, this._filters);
             if (this.opaque) {
                 // Required for a bug in Firefox on Windows
                 renderSession.gl.clearColor(0, 0, 0, 1);
@@ -5840,6 +5841,7 @@ WindowLayer.prototype._renderWebGL = function(renderSession) {
         this._vertexBuffer = gl.createBuffer();
     }
     var spriteBatch = renderSession.plugins.sprite;
+    renderSession.setObjectRenderer(spriteBatch);
     this._dummySprite._renderWebGL(renderSession);
 
     spriteBatch.stop();
