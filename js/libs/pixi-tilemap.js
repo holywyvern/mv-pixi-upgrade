@@ -558,6 +558,13 @@
         PIXI.Graphics.prototype.renderWebGL.call(this, renderer);
     };
 
+    GraphicsLayer.prototype.isModified = function(anim) {
+        return false;
+    };
+
+    GraphicsLayer.prototype.clearModify = function() {
+    };
+
     function ZLayer() {
         PIXI.Container.apply(this, arguments);
         this.initialize.apply(this, arguments);
@@ -602,7 +609,7 @@
         this._lastAnimationFrame = tilemap.animationFrame;
         if (modified) {
             var render = { context: buf.getContext("2d"), dontUseTransform: true };
-            tilemap.hackRenderer(render);
+            tilemap._hackRenderer && tilemap._hackRenderer(render);
             render.context.clearRect(0, 0, buf.width, buf.height);
             for (var i=0;i<layers.length;i++) {
                 layers[i].clearModify();
