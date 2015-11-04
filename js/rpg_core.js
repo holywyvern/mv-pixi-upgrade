@@ -380,11 +380,17 @@ function Bitmap() {
     this.initialize.apply(this, arguments);
 }
 
-Bitmap.prototype.initialize = function(width, height) {
-    this._canvas = document.createElement('canvas');
+Bitmap.prototype.initialize = function(width, height, _canvas) {
+    if (_canvas) {
+        this._canvas = _canvas;
+        width = _canvas.width;
+        height = _canvas.height;
+    } else {
+        this._canvas = document.createElement('canvas');
+        this._canvas.width = Math.max(width || 0, 1);
+        this._canvas.height = Math.max(height || 0, 1);
+    }
     this._context = this._canvas.getContext('2d');
-    this._canvas.width = Math.max(width || 0, 1);
-    this._canvas.height = Math.max(height || 0, 1);
     this._baseTexture = new PIXI.BaseTexture(this._canvas);
     this._baseTexture.scaleMode = PIXI.SCALE_MODES.NEAREST;
     this._image = null;
@@ -474,27 +480,13 @@ Bitmap.load = function(url) {
 Bitmap.snap = function(stage) {
     var width = Graphics.width;
     var height = Graphics.height;
-    var bitmap = new Bitmap(width, height);
-    var context = bitmap._context;
-    var renderTexture = new PIXI.RenderTexture(new PIXI.autoDetectRenderer(width, height), width, height);
+    var renderTexture = new PIXI.RenderTexture(Graphics._renderer, width, height);
     if (stage) {
         renderTexture.render(stage, null, true);
         stage.worldTransform.identity();
     }
-
-    if (Graphics.isWebGL()) {
-        var gl =  renderTexture.renderer.gl;
-        var webGLPixels = new Uint8Array(4 * width * height);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, renderTexture.textureBuffer.frameBuffer);
-        gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, webGLPixels);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        var canvasData = context.getImageData(0, 0, width, height);
-        canvasData.data.set(webGLPixels);
-        context.putImageData(canvasData, 0, 0);
-    } else {
-        context.drawImage(renderTexture.textureBuffer.canvas, 0, 0);
-    }
-
+    var bitmap = new Bitmap(width, height, renderTexture.getCanvas());
+    renderTexture.destroy(true);
     bitmap._setDirty();
     return bitmap;
 };
@@ -5026,7 +5018,7 @@ ScreenSprite.prototype._renderCanvas = function(renderSession) {
         var t = this.worldTransform;
         var r = renderSession.resolution;
         context.setTransform(t.a, t.b, t.c, t.d, t.tx * r, t.ty * r);
-        context.globalCompositeOperation = PIXI.blendModesCanvas[this.blendMode];
+        context.globalCompositeOperation = renderSession.blendModes[this.blendMode];
         context.globalAlpha = this.alpha;
         context.fillStyle = this._colorText;
         context.fillRect(0, 0, Graphics.width, Graphics.height);

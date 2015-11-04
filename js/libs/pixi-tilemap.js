@@ -228,7 +228,7 @@
     };
 
     TileRenderer.prototype.destroy = function () {
-        ObjectRenderer.prototype.destroy.call(this);
+        PIXI.ObjectRenderer.prototype.destroy.call(this);
         this.rectShader.destroy();
         this.squareShader.destroy();
         this.rectShader = null;
