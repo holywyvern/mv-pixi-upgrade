@@ -4032,8 +4032,8 @@ Tilemap.prototype._createLayers = function() {
         this.addChild(this.lowerZLayer = new PIXI.tilemap.ZLayer(this, 0));
         this.addChild(this.upperZLayer = new PIXI.tilemap.ZLayer(this, 4));
         this.lowerZLayer.addChild(this.lowestLayer = new PIXI.tilemap.CompositeRectTileLayer(0, [], true));
-        this.lowerZLayer.addChild(this.lowerLayer = new PIXI.tilemap.CompositeRectTileLayer(0, [], true));
         this.lowerZLayer.addChild(this._shadowLayer = new PIXI.tilemap.GraphicsLayer());
+        this.lowerZLayer.addChild(this.lowerLayer = new PIXI.tilemap.CompositeRectTileLayer(0, [], true));
         this.upperZLayer.addChild(this.upperLayer = new PIXI.tilemap.CompositeRectTileLayer(4, [], true));
     }
 };
