@@ -3227,7 +3227,7 @@ Object.defineProperty(Sprite.prototype, 'bitmap', {
         if (this._bitmap !== value) {
             this._bitmap = value;
             if (this._bitmap) {
-                this.setFrame(0, 0, 0, 0);
+                this.updateFrame();
                 this._bitmap.addLoadListener(this._onBitmapLoad.bind(this));
             } else {
                 this.texture.frame = (Rectangle.emptyRectangle);
@@ -3331,6 +3331,14 @@ Sprite.prototype.setFrame = function(x, y, width, height) {
         frame.height = height;
         this._refresh();
     }
+};
+
+/**
+ * Resets the sprite frame size
+ * @method updateFrame
+*/
+Sprite.prototype.updateFrame = function() {
+    this.setFrame(0, 0, 0, 0);
 };
 
 /**

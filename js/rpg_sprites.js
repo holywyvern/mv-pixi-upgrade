@@ -176,6 +176,23 @@ Sprite_Button.prototype.canvasToLocalY = function(y) {
     return y;
 };
 
+
+//-----------------------------------------------------------------------------
+// Sprite_CharacterBodyPart
+//
+// The sprite for displaying half of a character's body .
+function Sprite_CharacterBodyPart() {
+    this.initialize.apply(this, arguments);
+}
+
+Sprite_CharacterBodyPart.prototype = Object.create(Sprite_Base.prototype);
+Sprite_CharacterBodyPart.prototype.constructor = Sprite_CharacterBodyPart;
+
+Sprite_CharacterBodyPart.prototype.updateFrame = function(){
+    //Let the Sprite_Character class decide the frame size
+    this.parent.updateFrame();
+};
+
 //-----------------------------------------------------------------------------
 // Sprite_Character
 //
@@ -363,13 +380,13 @@ Sprite_Character.prototype.updateHalfBodySprites = function() {
 
 Sprite_Character.prototype.createHalfBodySprites = function() {
     if (!this._upperBody) {
-        this._upperBody = new Sprite();
+        this._upperBody = new Sprite_CharacterBodyPart();
         this._upperBody.anchor.x = 0.5;
         this._upperBody.anchor.y = 1;
         this.addChild(this._upperBody);
     }
     if (!this._lowerBody) {
-        this._lowerBody = new Sprite();
+        this._lowerBody = new Sprite_CharacterBodyPart();
         this._lowerBody.anchor.x = 0.5;
         this._lowerBody.anchor.y = 1;
         this._lowerBody.opacity = 128;
